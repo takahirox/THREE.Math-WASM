@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js Math WASM</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			#info a {
+				color: #75ddc1;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+
+	<body>
+		<script src="three/three.min.js"></script>
+		<script src="Math-wasm.js"></script>
+
+		<script>
+
+			console.log( Module );
+
+			setTimeout( init, 1000 );
+
+			function init() {
+
+				Module.functions = {};
+
+				Module.functions.Object3D_init = Module.cwrap(
+					'Object3D_init',
+					'number',
+					[]
+				);
+
+				Module.functions.getObjectSize = Module.cwrap(
+					'getObjectSize',
+					'number',
+					[]
+				);
+
+				Module.functions.Object3D_updateMatrixWorld = Module.cwrap(
+					'Object3D_updateMatrixWorld',
+					'void',
+					[ 'number', 'number' ]
+				);
+
+				createObject3D();
+
+				runTest();
+
+			}
+
+			function createObject3D() {
+
+				var size = Module.functions.getObjectSize();
+				var pointer = Module._malloc( size );
+				var buffer = Module.HEAPU8.buffer;
+				Module.functions.Object3D_init( pointer );
+
+				var offset = 0;
+
+				var position = new Float64Array( buffer, pointer, 3 );
+				offset += 3 * 8;
+
+				var quaternion = new Float64Array( buffer, pointer + offset, 4 );
+				offset += 4 * 8;
+
+				var scale = new Float64Array( buffer, pointer + offset, 3 );
+				offset += 3 * 8;
+
+				var matrix = new Float64Array( buffer, pointer + offset, 16 );
+				offset += 16 * 8;
+
+				var matrixWorld = new Float64Array( buffer, pointer + offset, 16 );
+				offset += 16 * 8;
+
+				var matrixAutoUpdate = new Int32Array( buffer, pointer + offset, 1 );
+				offset += 1 * 4;
+
+				var matrixWorldNeedsUpdate = new Int32Array( buffer, pointer + offset, 1 );
+				offset += 1 * 4;
+
+				var parent = new Uint32Array( buffer, pointer + offset, 1 );
+				offset += 1 * 4;
+
+				var childrenNum = new Int32Array( buffer, pointer + offset, 1 );
+				offset += 1 * 4;
+
+				var children = new Uint32Array( buffer, pointer + offset, 50 );
+				offset += 50 * 4;
+
+				/*
+				console.log( size, offset );
+
+				console.log( position );
+				console.log( quaternion );
+				console.log( scale );
+				console.log( matrix );
+				console.log( matrixWorld );
+				console.log( matrixAutoUpdate );
+				console.log( matrixWorldNeedsUpdate );
+				console.log( parent );
+				console.log( childrenNum );
+				console.log( children );
+				*/
+
+				var object = new THREE.Object3D();
+				object.pointer = pointer;
+
+				object.wasm = {
+					position: position,
+					quaternion: quaternion,
+					scale: scale,
+					matrix: matrix,
+					matrixWorld: matrixWorld,
+					matrixAutoUpdate: matrixAutoUpdate,
+					matrixWorldNeedsUpdate: matrixWorldNeedsUpdate,
+					parent: parent,
+					childrenNum: childrenNum,
+					children: children
+				};
+
+				return object;
+
+			}
+
+			function runTest() {
+
+				var depth = 4;
+				var width = 10;
+
+				var root = createObject3D();
+				var parent = root;
+
+				setRandomValue( root );
+
+				addChildren( root, width, 1, depth );
+
+				console.time( 'JS' );
+				root.updateMatrixWorld( true );
+				console.timeEnd( 'JS' );
+
+				console.time( 'WASM' );
+				Module.functions.Object3D_updateMatrixWorld( root.pointer, 1 );
+				console.timeEnd( 'WASM' );
+
+				console.time( 'JS' );
+				root.updateMatrixWorld( true );
+				console.timeEnd( 'JS' );
+
+				console.time( 'WASM' );
+				Module.functions.Object3D_updateMatrixWorld( root.pointer, 1 );
+				console.timeEnd( 'WASM' );
+
+				console.log( valid( root ) ? 'valid' : 'invalid' );
+
+				console.log( root );
+
+				var num = 0;
+
+				root.traverse( function ( object ) {
+
+					num ++;
+
+				} );
+
+				console.log( num );
+
+			}
+
+			function setRandomValue( object ) {
+
+				var wasm = object.wasm;
+
+				object.position.x = wasm.position[ 0 ] = Math.random();
+				object.position.y = wasm.position[ 1 ] = Math.random();
+				object.position.z = wasm.position[ 2 ] = Math.random();
+
+				object.quaternion.x = wasm.quaternion[ 0 ] = Math.random();
+				object.quaternion.y = wasm.quaternion[ 1 ] = Math.random();
+				object.quaternion.z = wasm.quaternion[ 2 ] = Math.random();
+				object.quaternion.w = wasm.quaternion[ 3 ] = Math.random();
+
+				object.scale.x = wasm.scale[ 0 ] = Math.random();
+				object.scale.y = wasm.scale[ 1 ] = Math.random();
+				object.scale.z = wasm.scale[ 2 ] = Math.random();
+
+			}
+
+			function addChildren( parent, width, depth, depthLimit ) {
+
+				if ( depth === depthLimit ) return;
+
+				for ( var i = 0; i < width; i ++ ) {
+
+					var child = createObject3D();
+					setRandomValue( child );
+					addChild( parent, child );
+					addChildren( child, width, depth + 1, depthLimit );
+
+				}
+
+			}
+
+			function addChild( parent, child ) {
+
+				parent.add( child );
+
+				child.wasm.parent[ 0 ] = parent.pointer;
+
+				parent.wasm.children[ parent.wasm.childrenNum[ 0 ] ] = child.pointer;
+				parent.wasm.childrenNum[ 0 ] += 1;
+
+			}
+
+			function valid( object ) {
+
+				var wasm = object.wasm;
+
+				for ( var i = 0; i < 16; i ++ ) {
+
+					if ( object.matrix.elements[ i ] !== wasm.matrix[ i ] ) return false;
+
+				}
+
+				for ( var i = 0; i < 16; i ++ ) {
+
+					if ( object.matrixWorld.elements[ i ] !== wasm.matrixWorld[ i ] ) return false;
+
+				}
+
+				if ( object.children.length !== wasm.childrenNum[ 0 ] ) return false;
+
+				for ( var i = 0; i < object.children.length; i ++ ) {
+
+					if ( ! valid( object.children[ i ] ) ) return false;
+
+				}
+
+				return true;
+
+			}
+
+		</script>
+
+	</body>
+</html>
