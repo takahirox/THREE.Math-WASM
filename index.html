@@ -142,8 +142,8 @@
 
 			function runTest() {
 
-				var depth = 4;
-				var width = 10;
+				var depth = 7;
+				var width = 4;
 
 				var root = createObject3D();
 				var parent = root;
@@ -152,21 +152,24 @@
 
 				addChildren( root, width, 1, depth );
 
-				console.time( 'JS' );
-				root.updateMatrixWorld( true );
-				console.timeEnd( 'JS' );
+				var force = true;
+				var runNum = 4;
 
-				console.time( 'WASM' );
-				Module.functions.Object3D_updateMatrixWorld( root.pointer, 1 );
-				console.timeEnd( 'WASM' );
+				for ( var i = 0; i < runNum; i ++ ) {
 
-				console.time( 'JS' );
-				root.updateMatrixWorld( true );
-				console.timeEnd( 'JS' );
+					console.time( 'JS' );
+					root.updateMatrixWorld( force );
+					console.timeEnd( 'JS' );
 
-				console.time( 'WASM' );
-				Module.functions.Object3D_updateMatrixWorld( root.pointer, 1 );
-				console.timeEnd( 'WASM' );
+				}
+
+				for ( var i = 0; i < runNum; i ++ ) {
+
+					console.time( 'WASM' );
+					Module.functions.Object3D_updateMatrixWorld( root.pointer, force === true ? 1 : 0 );
+					console.timeEnd( 'WASM' );
+
+				}
 
 				console.log( valid( root ) ? 'valid' : 'invalid' );
 
