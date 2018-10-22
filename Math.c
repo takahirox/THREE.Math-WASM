@@ -244,6 +244,8 @@ void Object3D_updateMatrix(
 		&self->quaternion,
 		&self->scale
 	);
+
+	self->matrixWorldNeedsUpdate = 1;
 }
 
 void Object3D_updateMatrixWorld(
