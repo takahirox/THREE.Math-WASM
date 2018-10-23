@@ -1,4 +1,4 @@
-//#define CACHED 
+//#define CACHED
 #define MAX_CHILDREN_NUM 50
 
 struct Vector3 {
@@ -29,9 +29,11 @@ struct Object3D {
 	struct Object3D *parent;
 	int childrenNum;
 	struct Object3D *children[MAX_CHILDREN_NUM];
+#ifdef CACHED
 	struct Vector3 cachedPosition;
 	struct Quaternion cachedQuaternion;
 	struct Vector3 cachedScale;
+#endif
 };
 
 struct Vector3* Vector3_init(
@@ -281,21 +283,19 @@ void Object3D_updateMatrix(
 	if (! Vector3_equals(&self->position, &self->cachedPosition) ||
 		! Quaternion_equals(&self->quaternion, &self->cachedQuaternion) ||
 		! Vector3_equals(&self->scale, &self->cachedScale)) {
+#endif
 		Matrix4_compose(
 			&self->matrix,
 			&self->position,
 			&self->quaternion,
 			&self->scale
 		);
-#endif
 
+		self->matrixWorldNeedsUpdate = 1;
+#ifdef CACHED
 		Vector3_copy(&self->cachedPosition, &self->position);
 		Quaternion_copy(&self->cachedQuaternion, &self->quaternion);
 		Vector3_copy(&self->cachedScale, &self->scale);
-
-		self->matrixWorldNeedsUpdate = 1;
-
-#ifdef CACHED
 	}
 #endif
 }
