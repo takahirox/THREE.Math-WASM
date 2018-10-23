@@ -1,5 +1,16 @@
+#include <stdlib.h>
 //#define CACHED
-#define MAX_CHILDREN_NUM 50
+
+struct LinkedList {
+	struct LinkedList *next;
+	struct LinkedList *prev;
+	void *value;
+};
+
+struct LinkedListHeader {
+	struct LinkedList *head;
+	struct LinkedList *tail;
+};
 
 struct Vector3 {
 	double x;
@@ -28,12 +39,48 @@ struct Object3D {
 	int matrixWorldNeedsUpdate;
 	struct Object3D *parent;
 	int childrenNum;
-	struct Object3D *children[MAX_CHILDREN_NUM];
+	struct LinkedListHeader children;
 #ifdef CACHED
 	struct Vector3 cachedPosition;
 	struct Quaternion cachedQuaternion;
 	struct Vector3 cachedScale;
 #endif
+};
+
+struct LinkedList* LinkedList_new(
+	void *value
+) {
+	struct LinkedList *p = malloc(sizeof(struct LinkedList));
+	p->next = 0;
+	p->prev = 0;
+	p->value = value;
+	return p;
+};
+
+struct LinkedListHeader* LinkedListHeader_init(
+	struct LinkedListHeader *self
+) {
+	self->head = 0;
+	self->tail = 0;
+	return self;
+};
+
+struct LinkedListHeader* LinkedListHeader_add(
+	struct LinkedListHeader *self,
+	void *value
+) {
+	struct LinkedList *node = LinkedList_new(value);
+
+	if (self->tail == 0) {
+		self->head = node;
+		self->tail = node;
+	} else {
+		node->prev = self->tail;
+		self->tail->next = node;
+		self->tail = node;
+	}
+
+	return self;
 };
 
 struct Vector3* Vector3_init(
@@ -275,6 +322,17 @@ struct Object3D* Object3D_init(
 	self->matrixWorldNeedsUpdate = 0;
 	self->parent = 0;
 	self->childrenNum = 0;
+	LinkedListHeader_init(&self->children);
+	return self;
+}
+
+struct Object3D* Object3D_add(
+	struct Object3D *self,
+	struct Object3D *child
+) {
+	LinkedListHeader_add(&self->children, child);
+	self->childrenNum++;
+	child->parent = self;
 	return self;
 }
 
@@ -325,15 +383,14 @@ void Object3D_updateMatrixWorld(
 
 	int childrenNum = self->childrenNum;
 
-	for (int i = 0; i < childrenNum; i++) {
-		Object3D_updateMatrixWorld( self->children[ i ], force );
+	struct LinkedList *node = self->children.head;
+
+	while (node != 0) {
+		Object3D_updateMatrixWorld(node->value, force);
+		node = node->next;
 	}
 }
 
 int getObjectSize() {
 	return sizeof(struct Object3D);
-}
-
-int getMaxChildrenNum() {
-	return MAX_CHILDREN_NUM;
 }
