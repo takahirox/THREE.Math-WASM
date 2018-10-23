@@ -55,6 +55,15 @@ struct Vector3* Vector3_copy(
 	return self;
 }
 
+int Vector3_equals(
+	struct Vector3 *self,
+	struct Vector3 *v
+) {
+	return self->x == v->x &&
+		self->y == v->y &&
+		self->z == v->z;
+}
+
 struct Quaternion* Quaternion_init(
 	struct Quaternion *self
 ) {
@@ -62,6 +71,27 @@ struct Quaternion* Quaternion_init(
 	self->y = 0;
 	self->z = 0;
 	self->w = 1;
+	return self;
+}
+
+int Quaternion_equals(
+	struct Quaternion *self,
+	struct Quaternion *q
+) {
+	return self->x == q->x &&
+		self->y == q->y &&
+		self->z == q->z &&
+		self->w == q->w;
+}
+
+struct Quaternion* Quaternion_copy(
+	struct Quaternion *self,
+	struct Quaternion *q
+) {
+	self->x = q->x;
+	self->y = q->y;
+	self->z = q->z;
+	self->w = q->w;
 	return self;
 }
 
@@ -85,57 +115,6 @@ struct Matrix4* Matrix4_init(
 	self->elements[14] = 0.0;
 	self->elements[15] = 1.0;
 	return self;
-}
-
-struct Object3D* Object3D_init(
-	struct Object3D *self
-) {
-	Vector3_init(&self->position);
-	Quaternion_init(&self->quaternion);
-	Vector3_init(&self->scale);
-	self->scale.x = 1;
-	self->scale.y = 1;
-	self->scale.z = 1;
-#ifdef CACHED
-	Vector3_copy(&self->cachedScale, &self->scale);
-#endif
-	Matrix4_init(&self->matrix);
-	Matrix4_init(&self->matrixWorld);
-	self->matrixAutoUpdate = 1;
-	self->matrixWorldNeedsUpdate = 0;
-	self->parent = 0;
-	self->childrenNum = 0;
-	return self;
-}
-
-int Vector3_equals(
-	struct Vector3 *self,
-	struct Vector3 *v
-) {
-	return self->x == v->x &&
-		self->y == v->y &&
-		self->z == v->z;
-}
-
-struct Quaternion* Quaternion_copy(
-	struct Quaternion *self,
-	struct Quaternion *q
-) {
-	self->x = q->x;
-	self->y = q->y;
-	self->z = q->z;
-	self->w = q->w;
-	return self;
-}
-
-int Quaternion_equals(
-	struct Quaternion *self,
-	struct Quaternion *q
-) {
-	return self->x == q->x &&
-		self->y == q->y &&
-		self->z == q->z &&
-		self->w == q->w;
 }
 
 struct Matrix4* Matrix4_compose(
@@ -221,7 +200,6 @@ struct Matrix4* Matrix4_multiplyMatrices(
 	struct Matrix4 *a,
 	struct Matrix4 *b
 ) {
-
 	double a11 = a->elements[0];
 	double a12 = a->elements[4];
 	double a13 = a->elements[8];
@@ -276,6 +254,27 @@ struct Matrix4* Matrix4_multiplyMatrices(
 	self->elements[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
 	self->elements[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
 
+	return self;
+}
+
+struct Object3D* Object3D_init(
+	struct Object3D *self
+) {
+	Vector3_init(&self->position);
+	Quaternion_init(&self->quaternion);
+	Vector3_init(&self->scale);
+	self->scale.x = 1;
+	self->scale.y = 1;
+	self->scale.z = 1;
+#ifdef CACHED
+	Vector3_copy(&self->cachedScale, &self->scale);
+#endif
+	Matrix4_init(&self->matrix);
+	Matrix4_init(&self->matrixWorld);
+	self->matrixAutoUpdate = 1;
+	self->matrixWorldNeedsUpdate = 0;
+	self->parent = 0;
+	self->childrenNum = 0;
 	return self;
 }
 
