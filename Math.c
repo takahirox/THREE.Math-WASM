@@ -1,3 +1,4 @@
+//#define CACHED 
 #define MAX_CHILDREN_NUM 50
 
 struct Vector3 {
@@ -28,6 +29,9 @@ struct Object3D {
 	struct Object3D *parent;
 	int childrenNum;
 	struct Object3D *children[MAX_CHILDREN_NUM];
+	struct Vector3 cachedPosition;
+	struct Quaternion cachedQuaternion;
+	struct Vector3 cachedScale;
 };
 
 struct Vector3* Vector3_init(
@@ -89,13 +93,52 @@ struct Object3D* Object3D_init(
 	return self;
 }
 
+struct Vector3* Vector3_copy(
+	struct Vector3 *self,
+	struct Vector3 *v
+) {
+	self->x = v->x;
+	self->y = v->y;
+	self->z = v->z;
+	return self;
+}
+
+int Vector3_equals(
+	struct Vector3 *self,
+	struct Vector3 *v
+) {
+	return self->x == v->x &&
+		self->y == v->y &&
+		self->z == v->z;
+}
+
+struct Quaternion* Quaternion_copy(
+	struct Quaternion *self,
+	struct Quaternion *q
+) {
+	self->x = q->x;
+	self->y = q->y;
+	self->z = q->z;
+	self->w = q->w;
+	return self;
+}
+
+int Quaternion_equals(
+	struct Quaternion *self,
+	struct Quaternion *q
+) {
+	return self->x == q->x &&
+		self->y == q->y &&
+		self->z == q->z &&
+		self->w == q->w;
+}
+
 struct Matrix4* Matrix4_compose(
 	struct Matrix4 *self,
 	struct Vector3 *position,
 	struct Quaternion *quaternion,
 	struct Vector3 *scale
 ) {
-
 	double x = quaternion->x;
 	double y = quaternion->y;
 	double z = quaternion->z;
@@ -142,14 +185,12 @@ struct Matrix4* Matrix4_compose(
         self->elements[15] = 1.0;
 
 	return self;
-
 }
 
 struct Matrix4* Matrix4_copy(
 	struct Matrix4 *self,
 	struct Matrix4 *m
 ) {
-
 	self->elements[0] = m->elements[0];
 	self->elements[1] = m->elements[1];
 	self->elements[2] = m->elements[2];
@@ -168,7 +209,6 @@ struct Matrix4* Matrix4_copy(
 	self->elements[15] = m->elements[15];
 
 	return self;
-
 }
 
 struct Matrix4* Matrix4_multiplyMatrices(
@@ -232,20 +272,32 @@ struct Matrix4* Matrix4_multiplyMatrices(
 	self->elements[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
 
 	return self;
-
 }
 
 void Object3D_updateMatrix(
 	struct Object3D *self
 ) {
-	Matrix4_compose(
-		&self->matrix,
-		&self->position,
-		&self->quaternion,
-		&self->scale
-	);
+#ifdef CACHED
+	if (! Vector3_equals(&self->position, &self->cachedPosition) ||
+		! Quaternion_equals(&self->quaternion, &self->cachedQuaternion) ||
+		! Vector3_equals(&self->scale, &self->cachedScale)) {
+		Matrix4_compose(
+			&self->matrix,
+			&self->position,
+			&self->quaternion,
+			&self->scale
+		);
+#endif
 
-	self->matrixWorldNeedsUpdate = 1;
+		Vector3_copy(&self->cachedPosition, &self->position);
+		Quaternion_copy(&self->cachedQuaternion, &self->quaternion);
+		Vector3_copy(&self->cachedScale, &self->scale);
+
+		self->matrixWorldNeedsUpdate = 1;
+
+#ifdef CACHED
+	}
+#endif
 }
 
 void Object3D_updateMatrixWorld(
