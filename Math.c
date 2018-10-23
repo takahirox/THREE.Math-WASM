@@ -255,35 +255,31 @@ void Object3D_updateMatrixWorld(
 	if (self->matrixAutoUpdate == 1) Object3D_updateMatrix(self);
 
 	if (self->matrixWorldNeedsUpdate == 1 || force == 1) {
-
 		if (self->parent == 0) {
-
 			Matrix4_copy(&self->matrixWorld, &self->matrix);
-
 		} else {
-
 			Matrix4_multiplyMatrices(
 				&self->matrixWorld,
 				&self->parent->matrixWorld,
 				&self->matrix
 			);
-
 		}
 
 		self->matrixWorldNeedsUpdate = 0;
 		force = 1;
-
 	}
 
 	int childrenNum = self->childrenNum;
 
 	for (int i = 0; i < childrenNum; i++) {
-
 		Object3D_updateMatrixWorld( self->children[ i ], force );
-
 	}
 }
 
 int getObjectSize() {
 	return sizeof(struct Object3D);
+}
+
+int getMaxChildrenNum() {
+	return MAX_CHILDREN_NUM;
 }
