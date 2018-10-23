@@ -54,6 +54,12 @@
 					[]
 				);
 
+				Module.functions.getMaxChildrenNum = Module.cwrap(
+					'getMaxChildrenNum',
+					'number',
+					[]
+				);
+
 				Module.functions.Object3D_updateMatrixWorld = Module.cwrap(
 					'Object3D_updateMatrixWorld',
 					'void',
@@ -69,6 +75,7 @@
 			function createObject3D() {
 
 				var size = Module.functions.getObjectSize();
+				var maxChildrenNum = Module.functions.getMaxChildrenNum();
 				var pointer = Module._malloc( size );
 				var buffer = Module.HEAPU8.buffer;
 				Module.functions.Object3D_init( pointer );
@@ -102,8 +109,8 @@
 				var childrenNum = new Int32Array( buffer, pointer + offset, 1 );
 				offset += 1 * 4;
 
-				var children = new Uint32Array( buffer, pointer + offset, 50 );
-				offset += 50 * 4;
+				var children = new Uint32Array( buffer, pointer + offset, maxChildrenNum );
+				offset += maxChildrenNum * 4;
 
 				/*
 				console.log( size, offset );
