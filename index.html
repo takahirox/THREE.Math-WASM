@@ -45,17 +45,17 @@
 				Module.functions.Object3D_init = Module.cwrap(
 					'Object3D_init',
 					'number',
-					[]
+					[ 'number' ]
+				);
+
+				Module.functions.Object3D_add = Module.cwrap(
+					'Object3D_add',
+					'number',
+					[ 'number', 'number' ]
 				);
 
 				Module.functions.getObjectSize = Module.cwrap(
 					'getObjectSize',
-					'number',
-					[]
-				);
-
-				Module.functions.getMaxChildrenNum = Module.cwrap(
-					'getMaxChildrenNum',
 					'number',
 					[]
 				);
@@ -75,7 +75,6 @@
 			function createObject3D() {
 
 				var size = Module.functions.getObjectSize();
-				var maxChildrenNum = Module.functions.getMaxChildrenNum();
 				var pointer = Module._malloc( size );
 				var buffer = Module.HEAPU8.buffer;
 				Module.functions.Object3D_init( pointer );
@@ -109,8 +108,8 @@
 				var childrenNum = new Int32Array( buffer, pointer + offset, 1 );
 				offset += 1 * 4;
 
-				var children = new Uint32Array( buffer, pointer + offset, maxChildrenNum );
-				offset += maxChildrenNum * 4;
+				var children = new Uint32Array( buffer, pointer + offset, 2 );
+				offset += 2 * 4;
 
 				/*
 				console.log( size, offset );
@@ -149,8 +148,8 @@
 
 			function runTest() {
 
-				var depth = 7;
-				var width = 4;
+				var depth = 2;
+				var width = 5000;
 
 				var root = createObject3D();
 				var parent = root;
@@ -231,11 +230,7 @@
 			function addChild( parent, child ) {
 
 				parent.add( child );
-
-				child.wasm.parent[ 0 ] = parent.pointer;
-
-				parent.wasm.children[ parent.wasm.childrenNum[ 0 ] ] = child.pointer;
-				parent.wasm.childrenNum[ 0 ] += 1;
+				Module.functions.Object3D_add(parent.pointer, child.pointer);
 
 			}
 
@@ -245,17 +240,32 @@
 
 				for ( var i = 0; i < 16; i ++ ) {
 
-					if ( object.matrix.elements[ i ] !== wasm.matrix[ i ] ) return false;
+					if ( object.matrix.elements[ i ] !== wasm.matrix[ i ] ) {
+
+						console.log( object );
+						return false;
+
+					}
 
 				}
 
 				for ( var i = 0; i < 16; i ++ ) {
 
-					if ( object.matrixWorld.elements[ i ] !== wasm.matrixWorld[ i ] ) return false;
+					if ( object.matrixWorld.elements[ i ] !== wasm.matrixWorld[ i ] ) {
+
+						console.log( object );
+						return false;
+
+					}
 
 				}
 
-				if ( object.children.length !== wasm.childrenNum[ 0 ] ) return false;
+				if ( object.children.length !== wasm.childrenNum[ 0 ] ) {
+
+					console.log( object );
+					return false;
+
+				}
 
 				for ( var i = 0; i < object.children.length; i ++ ) {
 
