@@ -45,6 +45,16 @@ struct Vector3* Vector3_init(
 	return self;
 }
 
+struct Vector3* Vector3_copy(
+	struct Vector3 *self,
+	struct Vector3 *v
+) {
+	self->x = v->x;
+	self->y = v->y;
+	self->z = v->z;
+	return self;
+}
+
 struct Quaternion* Quaternion_init(
 	struct Quaternion *self
 ) {
@@ -86,22 +96,15 @@ struct Object3D* Object3D_init(
 	self->scale.x = 1;
 	self->scale.y = 1;
 	self->scale.z = 1;
+#ifdef CACHED
+	Vector3_copy(&self->cachedScale, &self->scale);
+#endif
 	Matrix4_init(&self->matrix);
 	Matrix4_init(&self->matrixWorld);
 	self->matrixAutoUpdate = 1;
 	self->matrixWorldNeedsUpdate = 0;
 	self->parent = 0;
 	self->childrenNum = 0;
-	return self;
-}
-
-struct Vector3* Vector3_copy(
-	struct Vector3 *self,
-	struct Vector3 *v
-) {
-	self->x = v->x;
-	self->y = v->y;
-	self->z = v->z;
 	return self;
 }
 
